@@ -1,0 +1,24 @@
+{
+  "job_id": "adopt-001",
+  "target_root": "/path/to/existing-knowledge-base",
+  "sources": [
+    {
+      "id": "existing-knowledge-base",
+      "label": "现有知识库",
+      "root": "/path/to/existing-knowledge-base",
+      "mode": "adopt",
+      "include": [
+        "*",
+        "**/*"
+      ],
+      "exclude": []
+    }
+  ],
+  "batch": {
+    "max_files": 25,
+    "max_characters": 120000
+  },
+  "retention": {
+    "keep_extracted_text_after_completion": false
+  }
+}

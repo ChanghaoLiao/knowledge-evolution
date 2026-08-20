@@ -1,0 +1,38 @@
+{
+  "job_id": "import-001",
+  "target_root": "/path/to/test-knowledge-base",
+  "sources": [
+    {
+      "id": "old-notes",
+      "label": "旧笔记",
+      "root": "/path/to/old-notes",
+      "mode": "import",
+      "include": [
+        "*",
+        "**/*"
+      ],
+      "exclude": [
+        "Archive/Private/**"
+      ]
+    },
+    {
+      "id": "project-docs",
+      "label": "项目资料",
+      "root": "/path/to/project-docs",
+      "mode": "import",
+      "include": [
+        "**/*.md",
+        "**/*.docx",
+        "**/*.pdf"
+      ],
+      "exclude": []
+    }
+  ],
+  "batch": {
+    "max_files": 25,
+    "max_characters": 120000
+  },
+  "retention": {
+    "keep_extracted_text_after_completion": false
+  }
+}

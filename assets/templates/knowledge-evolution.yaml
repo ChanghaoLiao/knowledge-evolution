@@ -1,0 +1,64 @@
+version: 1
+format: "markdown"
+link_style: "markdown"
+
+bootstrap:
+  status: "uninitialized"
+  initialized_at: null
+  route: null
+  proposal_id: null
+  schema_version: 1
+
+folders:
+  inbox: "00 Inbox"
+  concepts: "10 Concepts"
+  projects: "20 Projects"
+  decisions: "30 Decisions"
+  experiences: "40 Experiences"
+  resources: "50 Resources"
+  system: "System"
+
+workspace_roots: []
+
+approval:
+  mode: "proposal-first"
+  auto_apply_low_risk: false
+  require_separate_high_risk_approval: true
+
+observation:
+  baseline_root: null
+  ignore_globs:
+    - "**/.git/**"
+    - "**/node_modules/**"
+    - "**/.venv/**"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/__pycache__/**"
+
+imports:
+  state_root: null
+  preserve_sources: true
+  batch_max_files: 25
+  batch_max_characters: 120000
+  keep_extracted_text_after_completion: false
+  require_source_hash_check_before_apply: true
+
+privacy:
+  never_read_values_from:
+    - "**/.env"
+    - "**/.env.*"
+    - "**/.git-credentials"
+    - "**/.netrc"
+    - "**/.npmrc"
+    - "**/.pypirc"
+    - "**/*.key"
+    - "**/*.pem"
+    - "**/*credential*"
+    - "**/*secret*"
+    - "**/*token*"
+
+system_records:
+  knowledge_map: "System/Knowledge Map.md"
+  source_registry: "System/Source Registry.md"
+  change_ledger: "System/Change Ledger.md"
+  proposal_archive: "System/Proposals"
