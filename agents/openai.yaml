@@ -1,4 +1,4 @@
 interface:
   display_name: "Knowledge Evolution"
-  short_description: "Govern and import personal knowledge safely"
-  default_prompt: "Use $knowledge-evolution to turn this conversation, workspace activity, or approved source folders into a reviewable knowledge update without changing source files."
+  short_description: "Govern, import, and sync personal knowledge safely"
+  default_prompt: "Use $knowledge-evolution to turn this conversation, workspace activity, or approved source folders into a reviewable knowledge update, or design an optional private Git knowledge environment, without changing source files or publishing unapproved content."

@@ -1,0 +1,9 @@
+device_id: "replace-with-a-local-device-id"
+
+# Map shared logical source IDs to paths that exist only on this device.
+source_paths:
+  example-projects: "/replace/with/a/local/path"
+
+# This file is a schema example. Copy it to `.local/device.yaml` inside a
+# portable repository. The real file is ignored by Git and must not contain
+# passwords, tokens, private keys, or other credentials.

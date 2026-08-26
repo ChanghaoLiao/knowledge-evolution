@@ -1,0 +1,42 @@
+# Device-local configuration
+.local/device.yaml
+.local/*.local.*
+
+# Credentials and secrets
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+*credential*
+*credentials*
+*secret*
+*token*
+.git-credentials
+.netrc
+.npmrc
+.pypirc
+
+# Temporary Knowledge Evolution evidence and job state
+.import-jobs/
+.knowledge-evolution/jobs/
+.knowledge-evolution/extracted/
+**/extracted-chunks.jsonl
+**/extraction-index.jsonl
+
+# Obsidian device/workspace state
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/workspaces.json
+.obsidian/cache/
+
+# Generated and operating-system noise
+.DS_Store
+Thumbs.db
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.log

@@ -1,4 +1,4 @@
-version: 1
+version: 2
 format: "markdown"
 link_style: "markdown"
 
@@ -7,7 +7,24 @@ bootstrap:
   initialized_at: null
   route: null
   proposal_id: null
-  schema_version: 1
+  schema_version: 2
+
+portability:
+  enabled: false
+  mode: "local"
+  repository_root: null
+  knowledge_root: "."
+  skill_snapshot: null
+  device_config: null
+  remote:
+    provider: null
+    expected_visibility: "private"
+  sync:
+    pull_before_run: false
+    pull_strategy: "fast-forward-only"
+    publish_after_approved_apply: false
+    auto_resolve_conflicts: false
+    force_push: false
 
 folders:
   inbox: "00 Inbox"

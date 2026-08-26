@@ -7,6 +7,7 @@ Use this workflow when the knowledge root or its structure is unknown. Keep disc
 - [Bootstrap lifecycle](#bootstrap-lifecycle)
 - [Establish the environment](#establish-the-environment)
 - [Choose one route](#choose-one-route)
+- [Choose a portability layer](#choose-a-portability-layer)
 - [Produce the bootstrap proposal](#produce-the-bootstrap-proposal)
 - [Initialize system records](#initialize-system-records)
 - [Finish onboarding](#finish-onboarding)
@@ -23,7 +24,7 @@ Treat Bootstrap as a one-way, recorded transition:
 
 Never replace `initialized` or `adopted` with a fresh bootstrap merely because the Skill is invoked again. Route normal later work to Evolve or Audit.
 
-Keep the installed Skill directory separate from user data. Bootstrap may change only approved paths inside the chosen knowledge root. Do not self-modify the Skill, alter Codex settings, edit `.obsidian/`, or change workspace source files as a Bootstrap side effect.
+Keep public Skill code separate from personal configuration and knowledge. Bootstrap may change only approved paths inside the chosen knowledge root or an explicitly approved portable-repository root. Do not self-modify an installed Skill, alter Codex settings, edit `.obsidian/`, or change workspace source files as an implicit Bootstrap side effect. A repository-scoped Skill snapshot and an optional global installation are separate, explicit portability actions.
 
 ## Establish the environment
 
@@ -34,6 +35,8 @@ Discover or ask for only the missing items:
 - other user-approved sources such as exported notes, project folders, documents, or chat archives;
 - preferred language, link style, and naming conventions;
 - directories that are out of scope or sensitive.
+- storage mode: local-only, an existing Git repository, or a new private GitHub repository;
+- whether repository-scoped Skill discovery is sufficient or a separate global installation is desired.
 
 Do not require Obsidian. A Markdown directory created by this Skill can later be opened as an Obsidian vault without conversion.
 
@@ -97,6 +100,16 @@ Use Import. Prefer exports supplied by the user and register every approved fold
 
 Never import the entire archive in one approval wave. Propose bounded batches, record progress, and verify that source files still match the inventory immediately before Apply.
 
+## Choose a portability layer
+
+Choose this after the Create, Adopt, or Import route. Portability changes where approved knowledge and shared configuration are transported; it does not change semantic classification or approval rules.
+
+- **Local-only**: default. Keep the knowledge root and Skill installation separate and do not initialize Git.
+- **Existing Git repository**: inspect its root, remote, ignore rules, history, and current status before proposing any placement. Never nest one unrelated Git repository inside another merely to obtain sync.
+- **New private GitHub repository**: first propose a local portable layout. After the user separately approves external creation, create the remote as private, verify its visibility, and only then publish the approved initial paths.
+
+Read `git-portability.md` completely for either Git route. A portable repository may contain an unchanged snapshot at `.agents/skills/knowledge-evolution/`, while personal profile, preferences, source registry, knowledge, and device mappings remain outside the snapshot. Cloning never executes an installer; repository-scoped use can begin when the repository is opened, while global discovery requires a separately approved one-time installer.
+
 ## Produce the bootstrap proposal
 
 Include:
@@ -108,7 +121,8 @@ Include:
 5. mapping or migration stages;
 6. Import/Adopt job location, batch limits, retention choice, and source-preservation checks when applicable;
 7. privacy concerns and content intentionally excluded;
-8. confirmation choices.
+8. selected portability layer, repository layout, remote visibility, sync policy, and device-local exclusions when Git is requested;
+9. separate confirmation choices for local writes, remote creation, global installation, first publication, and any source copy.
 
 Use `assets/templates/update-proposal.md` for Create and for Adopt work that only adds minimal system records. When Bootstrap includes Import or content migration, use `assets/templates/import-proposal.md` as the combined Bootstrap-and-Proposal-Wave document; set its `kind` to `import` or `adopt` as appropriate and include the detected route and persistent initialization changes. Do not require two overlapping proposals unless the user explicitly wants environment initialization reviewed separately from content migration.
 
@@ -125,6 +139,8 @@ Adapt these templates rather than forcing their exact paths:
 Set persistent Bootstrap fields only after approved changes have been applied and verified. Record the route, date, proposal ID, and schema version. Preserve these fields across later updates.
 
 Do not store absolute paths if the user intends to sync the knowledge base across devices; prefer paths relative to a configured root.
+
+For a portable repository, store logical source IDs in shared records and absolute path mappings only in ignored `.local/device.yaml`. Treat a source missing on another device as unavailable on that device, not deleted from the knowledge system.
 
 ## Finish onboarding
 

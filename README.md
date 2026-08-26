@@ -6,6 +6,7 @@
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)
 ![Storage: Markdown](https://img.shields.io/badge/Storage-Markdown-6C5CE7.svg)
 ![Obsidian: Optional](https://img.shields.io/badge/Obsidian-Optional-7C3AED.svg)
+![Git: Private Optional](https://img.shields.io/badge/Git-Private%20Optional-24292F.svg)
 
 > Proposal-first personal knowledge governance for Codex.
 
@@ -21,6 +22,7 @@ Knowledge Evolution 不是一个“自动把聊天保存成笔记”的工具。
 - [安装](#安装)
 - [快速开始](#快速开始)
 - [Bootstrap：第一次使用](#bootstrap第一次使用)
+- [多电脑：私有 Git 知识系统](#多电脑私有-git-知识系统)
 - [Import / Adopt：接管已有资料](#import--adopt接管已有资料)
 - [日常使用](#日常使用)
 - [截图演示](#截图演示)
@@ -70,6 +72,8 @@ Knowledge Evolution 关注的是“这次工作让知识体系发生了什么变
 - **证据链**：候选知识保留 `source_id`、`file_id`、`chunk_id`、相对路径和定位信息。
 - **重复与冲突协调**：区分完全重复、近似重复、历史版本和未解决冲突。
 - **持久化初始化状态**：Bootstrap 完成后不会因为下一次调用而丢失或重置。
+- **可选私有 Git 便携层**：把知识、共享配置和仓库级 Skill 快照放进私有仓库，让另一台电脑克隆后继续工作。
+- **设备配置隔离**：共享逻辑来源 ID，本机绝对路径只写入被 Git 忽略的设备配置。
 - **安全默认值**：来源只读、敏感文件排除、内容凭据遮盖、严格路径边界和应用前哈希检查。
 
 ## 工作原理
@@ -87,13 +91,16 @@ flowchart LR
     U -->|否| X["修改、延期或拒绝"]
     U -->|是| T["目标 Markdown 知识库"]
     T --> V["验证、来源登记、变更台账"]
+    V -. 可选的获批发布 .-> G["私有 Git 远程<br/>跨电脑传输与回滚"]
 ```
 
 Skill、工作区和知识库始终是三个不同对象：
 
-- **Skill 本体**保存规则、模板和辅助脚本。
+- **公开 Skill 本体**保存通用规则、模板和辅助脚本。
 - **工作区与来源文件夹**提供事实和历史资料，默认只读观察。
 - **目标知识库**只接收用户批准的变更。
+
+启用 Git 便携层时，私有仓库可以额外保存一份不含个人信息的 Skill 快照，供仓库级发现使用。用户画像、偏好、设备路径和知识内容始终位于快照之外。
 
 升级 Skill 不等于重新初始化用户知识库，也不会用新版空白模板覆盖用户内容。
 
@@ -139,7 +146,8 @@ rsync -a --exclude '.git' knowledge-evolution/ \
 
 - Codex，负责发现并调用 Skill；
 - Python 3.10 或更高版本，负责可选的审计、快照和 Import / Adopt 流水线；
-- Git，可选，用于更准确地观察工作区变化；
+- Git，可选；使用多电脑私有仓库功能时必需；
+- GitHub CLI，可选；创建或验证 GitHub 私有仓库时使用；
 - Obsidian，可选，普通 Markdown 目录同样受支持。
 
 ## 快速开始
@@ -173,6 +181,14 @@ rsync -a --exclude '.git' knowledge-evolution/ \
 来源保持只读，分批处理，先给我第一轮迁移提案。
 ```
 
+### 5. 建立多电脑私有知识环境
+
+```text
+用 $knowledge-evolution 把我的知识库配置成私有 GitHub 知识系统。
+另一台电脑克隆后要能继续使用仓库内的 Skill、个人配置和知识库。
+先给我 Bootstrap 与 Git 操作提案，不要创建远程或推送。
+```
+
 ## Bootstrap：第一次使用
 
 第一次使用时，Skill 不假设用户已经有 Obsidian，也不假设当前工作区就是知识库。它会先判断环境，再选择路线。
@@ -195,6 +211,14 @@ Agent 会确认：
 - 后续审核策略。
 
 此阶段不会创建目录、移动笔记或修改 `.obsidian/`。
+
+在 Create、Adopt 或 Import 路线确定之后，用户还可以选择一个独立的存储层：
+
+| 存储层 | 适用情况 | 默认行为 |
+| --- | --- | --- |
+| Local-only | 只在当前电脑使用 | 不初始化 Git，不增加仓库级 Skill |
+| Existing Git | 已有合适的私有仓库 | 先检查状态、remote 与 ignore，再提出放置方案 |
+| New Private GitHub | 需要跨电脑访问 | 先建本地便携结构；远程创建和首次 push 分开审批 |
 
 ### Bootstrap 第二阶段：用户批准后应用
 
@@ -239,6 +263,160 @@ System/
 - `Proposals/`：已经批准并应用的提案版本。
 
 初始化状态是持久的。之后会进入 Evolve 或 Audit，不会重复复制模板或删除初始化信息。
+
+## 多电脑：私有 Git 知识系统
+
+这是一层可选能力，不会改变 Local-only 用户的行为。它把公开 Skill 和个人环境分成两个对象：
+
+```text
+公开 Knowledge Evolution Skill
+        ↓ 生成、验证和升级通用规则
+用户自己的私有 Git 仓库
+        ↓ 保存知识、共享配置、历史和仓库级 Skill 快照
+多台电脑上的本机路径映射
+```
+
+### 标准仓库结构
+
+新建环境的参考结构是：
+
+```text
+personal-knowledge/
+├── AGENTS.md
+├── .agents/
+│   └── skills/
+│       └── knowledge-evolution/   # 不含个人信息的通用快照
+├── Knowledge/
+│   ├── 00 Inbox/
+│   ├── 10 Concepts/
+│   ├── 20 Projects/
+│   ├── 30 Decisions/
+│   ├── 40 Experiences/
+│   ├── 50 Resources/
+│   └── System/
+│       ├── Profile/               # 用户画像与知识偏好
+│       ├── Knowledge Map.md
+│       ├── Source Registry.md
+│       ├── Change Ledger.md
+│       └── knowledge-evolution.yaml
+├── .knowledge-evolution/
+│   └── portability.yaml           # 共享同步与隐私策略
+├── .local/
+│   ├── device.yaml                # 本机配置，不提交
+│   └── device.yaml.example        # 可提交的字段示例
+├── .gitignore
+└── README.md
+```
+
+已有成熟 Vault 或 Git 仓库不会被强制改成这个目录。Skill 会保留其结构，只提议加入必要的便携配置和可选 Skill 快照。
+
+### 创建本地便携结构
+
+只有在用户批准目标路径、是否复制旧 Vault、Bootstrap 状态和 Git 初始化之后，才运行：
+
+```bash
+python3 scripts/create_portable_repository.py \
+  --repo-root "/目标/Personal Knowledge" \
+  --name "Personal Knowledge" \
+  --bootstrap-status initialized \
+  --bootstrap-route create \
+  --proposal-id BOOTSTRAP-001 \
+  --initialized-at YYYY-MM-DD \
+  --pretty
+```
+
+接管已有知识库时，必须显式提供 `--copy-knowledge`；脚本只复制，不会移动或修改原目录：
+
+```bash
+python3 scripts/create_portable_repository.py \
+  --repo-root "/目标/Personal Knowledge" \
+  --knowledge-source "/原来的/Vault" \
+  --copy-knowledge \
+  --bootstrap-status adopted \
+  --bootstrap-route adopt \
+  --proposal-id BOOTSTRAP-002 \
+  --initialized-at YYYY-MM-DD \
+  --pretty
+```
+
+该脚本只创建本地结构。它不会创建 GitHub 仓库、修改全局 Codex 配置、提交、推送或删除来源。复制旧资料时会跳过并报告嵌套 `.git`、符号链接、凭据/密钥命名文件和 Obsidian 设备状态；这些内容仍保留在原目录。
+
+### 连接新的私有 GitHub 仓库
+
+远程创建属于单独的外部操作，需要明确批准。参考流程：
+
+```bash
+gh repo create OWNER/REPOSITORY --private --source "/目标/Personal Knowledge" --remote origin
+python3 scripts/sync_knowledge_repository.py verify-private \
+  --repo "/目标/Personal Knowledge" \
+  --pretty
+```
+
+只有验证结果为 `PRIVATE` 后，才允许第一次知识 push。GitHub CLI 未登录、无法获得可见性、仓库是 public，都会阻断推送；系统不会退回公开仓库。
+
+### 日常同步
+
+开始一次知识任务前检查状态：
+
+```bash
+python3 scripts/sync_knowledge_repository.py status --repo "/目标/Personal Knowledge" --pretty
+python3 scripts/sync_knowledge_repository.py pull --repo "/目标/Personal Knowledge" --pretty
+```
+
+`pull` 只在 worktree 和 index 都干净、有明确 upstream 时执行 `--ff-only`。存在未提交修改、分叉、冲突、detached HEAD 或认证失败时会停止，不会自动 stash、reset、rebase 或选一个版本覆盖另一个。
+
+知识提案获批并应用、验证后，提交仍然只包含用户批准的路径：
+
+```bash
+python3 scripts/sync_knowledge_repository.py publish \
+  --repo "/目标/Personal Knowledge" \
+  --path Knowledge \
+  --message "knowledge: apply PROPOSAL-001" \
+  --push \
+  --pretty
+```
+
+脚本拒绝已有的无关 staged 内容，从不 force-push。普通知识 Apply 的批准不会自动授权 commit 或 push，除非用户已经在持久策略中明确启用获批后发布。
+
+### 另一台电脑如何开始
+
+```text
+登录私有 Git 提供方
+        ↓
+clone 私有仓库
+        ↓
+用 Codex 打开克隆目录
+        ↓
+仓库级 Skill 读取共享知识与配置
+        ↓
+从 example 创建本机 device.yaml
+        ↓
+先运行只读 Audit，再开始 Apply
+```
+
+Git clone 出于安全原因不会自动执行安装脚本。在支持仓库级 Skill 的 Codex 环境中，打开仓库即可使用 `.agents/skills/knowledge-evolution/`。如果还希望在无关项目中全局调用这份快照，再显式运行一次：
+
+```bash
+python3 .agents/skills/knowledge-evolution/scripts/install_portable_skill.py \
+  --repository-root . \
+  --pretty
+```
+
+安装器默认使用符号链接，使全局入口跟随克隆仓库中的快照；Windows 的 `auto` 模式使用复制。目标已存在时会停止，不会覆盖另一个 Skill。复制模式不会自动跟随后续升级。
+
+### 不同电脑上的项目路径
+
+共享配置只记录逻辑来源 ID，例如 `ai-coding-projects`。每台电脑在不提交的 `.local/device.yaml` 中映射自己的绝对路径：
+
+```yaml
+device_id: "macbook-example"
+source_paths:
+  ai-coding-projects: "/Users/example/Projects/ai-coding"
+```
+
+Windows 或另一台 Mac 可以把相同 ID 映射到完全不同的位置。某台电脑没有该路径时，来源只会标记为 `unavailable-on-this-device`，不会被当成已删除。
+
+完整协议见 [`references/git-portability.md`](references/git-portability.md)。
 
 ## Import / Adopt：接管已有资料
 
@@ -350,8 +528,14 @@ knowledge-evolution/
 ├── agents/
 │   └── openai.yaml
 ├── assets/
+│   ├── portable-repository/
+│   │   ├── AGENTS.md
+│   │   ├── README.md
+│   │   └── gitignore
 │   └── templates/
 │       ├── knowledge-evolution.yaml
+│       ├── git-portability.yaml
+│       ├── device-config.yaml.example
 │       ├── adopt-job.json
 │       ├── import-job.json
 │       ├── import-proposal.md
@@ -362,10 +546,14 @@ knowledge-evolution/
 │   ├── import-adopt.md
 │   ├── knowledge-schema.md
 │   ├── observation.md
+│   ├── git-portability.md
 │   └── governance.md
 ├── scripts/
 │   ├── audit_knowledge_base.py
 │   ├── workspace_changes.py
+│   ├── create_portable_repository.py
+│   ├── install_portable_skill.py
+│   ├── sync_knowledge_repository.py
 │   ├── register_sources.py
 │   ├── build_source_manifest.py
 │   ├── extract_documents.py
@@ -374,7 +562,8 @@ knowledge-evolution/
 │   ├── find_duplicate_candidates.py
 │   └── verify_import.py
 ├── tests/
-│   └── test_import_pipeline.py
+│   ├── test_import_pipeline.py
+│   └── test_git_portability.py
 └── docs/images/
 ```
 
@@ -386,6 +575,9 @@ knowledge-evolution/
 | --- | --- | --- |
 | `audit_knowledge_base.py` | 有界知识库体检 | 否 |
 | `workspace_changes.py` | Git 状态或前后快照 | 否；只有显式输出快照时写状态文件 |
+| `create_portable_repository.py` | 生成本地便携仓库结构与 Skill 快照 | 不修改来源；只写批准的新目录 |
+| `install_portable_skill.py` | 可选地链接或复制仓库级 Skill 到全局目录 | 不修改知识；拒绝覆盖已有 Skill |
+| `sync_knowledge_repository.py` | 状态、`ff-only` 拉取、私有验证、按路径发布 | 仅显式 pull/publish 修改 Git 状态 |
 | `register_sources.py` | 校验来源、目标和 job 边界 | 否 |
 | `build_source_manifest.py` | 路径、格式、大小和哈希清单 | 否 |
 | `extract_documents.py` | 提取带来源定位的内容片段 | 否 |
@@ -418,13 +610,16 @@ knowledge-evolution/
 - 没有会话前 baseline 或工具记录时，不把 dirty tree 变化归因于当前 Agent。
 - 覆盖、删除、批量移动、合并和知识体系重构始终需要单独审核。
 - 原始提取片段属于临时证据，不应提交到 Git 或长期同步目录。
+- 私有 Git 模式默认忽略 `.local/device.yaml`、Obsidian workspace 状态和 Import 临时提取内容。
+- GitHub 第一次知识 push 前必须验证可见性是 `PRIVATE`，不能验证则停止。
+- 不把 Obsidian Sync、iCloud/Dropbox 目录同步和 Git 自动化同时用于同一个 Vault，除非用户明确设计了冲突策略。
 
 ## 配置
 
 新知识库可以从 [`assets/templates/knowledge-evolution.yaml`](assets/templates/knowledge-evolution.yaml) 适配，而不是强制复制：
 
 ```yaml
-version: 1
+version: 2
 format: "markdown"
 link_style: "markdown"
 
@@ -433,7 +628,24 @@ bootstrap:
   initialized_at: null
   route: null
   proposal_id: null
-  schema_version: 1
+  schema_version: 2
+
+portability:
+  enabled: false
+  mode: "local"
+  repository_root: null
+  knowledge_root: "."
+  skill_snapshot: null
+  device_config: null
+  remote:
+    provider: null
+    expected_visibility: "private"
+  sync:
+    pull_before_run: false
+    pull_strategy: "fast-forward-only"
+    publish_after_approved_apply: false
+    auto_resolve_conflicts: false
+    force_push: false
 
 approval:
   mode: "proposal-first"
@@ -475,9 +687,14 @@ python3 -m unittest discover -s tests -v
 - 重复与冲突协调完整性；
 - Application Change ID 幂等；
 - 来源在清单后变化时阻断；
-- Adopt 获批目标更新与外部漂移的区分。
+- Adopt 获批目标更新与外部漂移的区分；
+- 便携仓库生成与原 Vault 哈希保持；
+- 复制来源必须显式授权；
+- 仓库级 Skill 安装幂等且拒绝覆盖；
+- 干净 worktree 的 `ff-only` 拉取、dirty pull 阻断和批准路径提交；
+- 非 GitHub 测试 remote 的显式隐私确认与普通 push。
 
-该版本通过了 4 个自动化临时夹具集成测试，并完成过一次独立前向测试：两个外部来源加一个已有目标库、9 个清单文件、5 个分类批次，成功推进到 `proposed`，来源和目标文件零写入。
+所有自动化测试均使用临时仓库和临时知识库，不接触真实 Vault。Import / Adopt 还完成过一次独立前向测试：两个外部来源加一个已有目标库、9 个清单文件、5 个分类批次，成功推进到 `proposed`，来源和目标文件零写入。
 
 ## 已知限制
 
@@ -488,7 +705,9 @@ python3 -m unittest discover -s tests -v
 - 内容敏感值遮盖使用启发式规则，不等于完整 DLP 系统。
 - 大规模资料需要时间和上下文预算，设计目标是可暂停、可恢复，而不是未经审核的一键导入。
 - Skill 不会自动安装、配置或修改 Obsidian，也不会修改 `.obsidian/`。
-- 当前没有自动同步或后台守护进程；每次演化由用户或 Agent 任务触发。
+- Git 同步是显式任务触发的安全同步，不是实时同步或后台守护进程。
+- GitHub 私有可见性验证依赖已登录的 GitHub CLI；其他 Git 提供方需要单独验证隐私并显式确认。
+- Git 不适合频繁变化的大型二进制附件；此类内容应单独评估 Git LFS 或外部存储。
 
 ## 常见问题
 
@@ -498,7 +717,7 @@ python3 -m unittest discover -s tests -v
 
 ### Bootstrap 会修改哪些内容？
 
-发现阶段不修改。用户批准后，只能修改提案中列出的目标知识库路径；不会修改 Skill、本地项目源码或 `.obsidian/` 设置。
+发现阶段不修改。用户批准后，只能修改提案中列出的知识库路径；Git 便携模式还可以修改明确批准的全新仓库路径。远程创建、全局 Skill 安装、commit 和 push 分别需要授权，不会修改项目源码或 `.obsidian/` 设置。
 
 ### 初始化完成后，初始化信息会消失吗？
 
@@ -510,7 +729,19 @@ python3 -m unittest discover -s tests -v
 
 ### 升级 Skill 会覆盖我的知识库吗？
 
-不会。Skill 目录和知识库目录相互独立。未来配置迁移也应先生成迁移提案。
+不会。公开 Skill 或私有仓库里的 Skill 快照与 `Knowledge/`、`Profile/`、`.local/` 相互独立。更新快照必须单独审核，未来配置迁移也应先生成迁移提案。
+
+### 必须使用 GitHub 吗？
+
+不需要。本地模式完全不依赖 Git。便携层底层使用普通 Git，GitHub 是当前提供私有可见性自动验证的参考实现；GitLab 或自建 Git 可以在单独验证隐私后使用。
+
+### clone 后 Skill 会自动安装吗？
+
+不会自动执行安装代码。用 Codex 打开仓库时可以使用仓库内 `.agents/skills/` 快照；需要跨项目全局发现时，再主动运行一次安装器。
+
+### 两台电脑能同时修改同一知识库吗？
+
+可以依次修改并同步。若产生 Git 分叉或内容冲突，系统会停止并要求审核，不会自动选择较新的版本。开始工作前先执行安全 pull 能显著减少冲突。
 
 ### 为什么不允许直接自动整理全部内容？
 

@@ -1,6 +1,6 @@
 ---
 name: knowledge-evolution
-description: Turn conversations, agent tool activity, workspace changes, and one or more existing source folders into reviewable, evidence-linked updates to a personal Markdown knowledge base or Obsidian vault. Use when a user asks to initialize, create, adopt, import, audit, organize, or migrate a knowledge base; batch-process old notes or documents; capture durable knowledge from a discussion; reconcile project work with notes; propose or apply knowledge changes; maintain concepts, projects, decisions, experiences, resources, maps, or change history; or says things such as "整理这次讨论", "导入这些资料", "更新知识库", "初始化我的 Obsidian", or "结合工作区变化沉淀知识".
+description: Turn conversations, agent tool activity, workspace changes, and one or more existing source folders into reviewable, evidence-linked updates to a personal Markdown knowledge base or Obsidian vault. Use when a user asks to initialize, create, adopt, import, audit, organize, migrate, or safely sync a knowledge base; batch-process old notes or documents; capture durable knowledge from a discussion; reconcile project work with notes; create a private Git or GitHub-backed knowledge repository for multiple computers; propose or apply knowledge changes; maintain concepts, projects, decisions, experiences, resources, maps, or change history; or says things such as "整理这次讨论", "导入这些资料", "更新知识库", "初始化我的 Obsidian", "把知识库放到私有 GitHub", or "结合工作区变化沉淀知识".
 ---
 
 # Knowledge Evolution
@@ -17,7 +17,7 @@ Treat a knowledge base as a governed system that evolves through reviewed change
 - Preserve the user's existing taxonomy, naming, frontmatter, links, and language.
 - Never invent an existing note, folder, or target path. Mark unresolved targets as `TBD` and block Apply until the knowledge root and target are verified.
 - Treat Bootstrap as a persistent state transition, not a temporary prompt. Preserve approved initialization choices and provenance across later Evolve runs.
-- Keep the installed Skill, user workspace, and user knowledge base separate. Never self-modify the Skill or alter workspace source files as a side effect of Bootstrap.
+- Keep the public Skill, user workspace, and user knowledge data logically separate. A user-approved portable repository may vendor an unchanged Skill snapshot for repository-scoped discovery, but personal configuration must remain outside that snapshot and no installed Skill may self-modify.
 - Treat every registered Import/Adopt source as read-only. Preserve original files, use an isolated resumable job directory, and write only approved changes to the target knowledge root.
 - Never read or persist secret values. Report only that sensitive material was excluded.
 - Never claim that an agent caused a workspace change unless a session baseline or tool record supports attribution.
@@ -31,6 +31,8 @@ Treat a knowledge base as a governed system that evolves through reviewed change
 5. Use **Audit** for a read-only health check, duplication review, or knowledge-map refresh.
 6. Use **Apply** only for a proposal the user has explicitly approved.
 
+Git portability is an optional deployment layer for any mode, not a seventh knowledge mode. Local-only use remains the default.
+
 ## Run the workflow
 
 ### 1. Establish scope
@@ -42,6 +44,8 @@ Do not assume the current workspace is the knowledge base. If no knowledge root 
 If the knowledge environment is not initialized, read [onboarding.md](references/onboarding.md) completely and follow its route. Use `scripts/audit_knowledge_base.py` for a bounded, read-only inventory.
 
 If Bootstrap includes existing notes, exported data, documents, project folders, or more than one source root, read [import-adopt.md](references/import-adopt.md) completely. Register explicit roots before scanning, keep operational state outside source and target content, and use the resumable Import/Adopt pipeline. Do not substitute an untracked recursive read or a one-shot bulk rewrite.
+
+If the user asks for Git, GitHub, a private repository, multiple-computer access, portable Codex discovery, pull/push, or knowledge sync, read [git-portability.md](references/git-portability.md) completely. Keep repository creation, knowledge initialization, global Skill installation, and remote publication as separately reviewable actions. Default the remote to private and verify that visibility before the first knowledge push.
 
 If persistent configuration reports `initialized` or `adopted`, do not run Bootstrap again. Use Evolve or Audit unless the user explicitly requests reinitialization or migration.
 
@@ -110,6 +114,8 @@ For Import/Adopt jobs, verify that registered source hashes still match the prop
 
 Update the knowledge map, source registry, affected backlinks, and change ledger when present. Record what changed, why, which evidence supported it, and which proposal approval authorized it.
 
+For a Git-backed knowledge repository, a knowledge Apply approval does not automatically authorize a commit or push. After verification, publish only approved repository paths, never force-push, and stop on dirty pull state, divergence, or conflicts. Use `scripts/sync_knowledge_repository.py` for deterministic status, fast-forward pull, private-remote verification, and scoped publication.
+
 ### 9. Verify and report
 
 Re-read changed files. Validate paths, frontmatter, internal links, duplicate titles, and ledger entries. Report applied, skipped, failed, and still-uncertain changes separately. Include a rollback pointer such as a backup location, prior snapshot, or git commit when one exists.
@@ -121,6 +127,7 @@ Re-read changed files. Validate paths, frontmatter, internal links, duplicate ti
 - Read [knowledge-schema.md](references/knowledge-schema.md) for note types, identity, linking, and quality gates.
 - Read [observation.md](references/observation.md) for workspace attribution, privacy, git, snapshots, and conflict handling.
 - Read [governance.md](references/governance.md) for proposals, approval, risk, apply, ledger, and rollback.
+- Read [git-portability.md](references/git-portability.md) for optional private Git repositories, repository-scoped Skill snapshots, device-local configuration, safe synchronization, and new-computer recovery.
 - Copy and adapt files from `assets/templates/` only after choosing a structure or receiving approval.
 - Run scripts with `--help` before first use. Scripts do not authorize broader scanning or writing.
 
@@ -132,3 +139,4 @@ Re-read changed files. Validate paths, frontmatter, internal links, duplicate ti
 - `用 $knowledge-evolution 整理这次讨论，同时核对当前项目实际修改了什么。`
 - `用 $knowledge-evolution 只生成知识更新提案，不要写入文件。`
 - `用 $knowledge-evolution 应用提案中的 K-01 和 K-03。`
+- `用 $knowledge-evolution 为我的知识库设计一个私有 GitHub 仓库，让另一台电脑克隆后可以继续使用；先给我提案。`

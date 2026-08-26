@@ -1,0 +1,25 @@
+version: 1
+mode: "git"
+repository_root: "."
+knowledge_root: "Knowledge"
+skill_snapshot: ".agents/skills/knowledge-evolution"
+shared_profile_root: "Knowledge/System/Profile"
+device_config: ".local/device.yaml"
+
+remote:
+  provider: "github"
+  expected_visibility: "private"
+  url: null
+  visibility_verified_at: null
+
+sync:
+  pull_before_run: true
+  pull_strategy: "fast-forward-only"
+  publish_after_approved_apply: false
+  auto_resolve_conflicts: false
+  force_push: false
+
+privacy:
+  sync_raw_import_extraction: false
+  sync_device_absolute_paths: false
+  sync_obsidian_workspace_state: false
