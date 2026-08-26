@@ -127,6 +127,12 @@ class GitPortabilityTests(unittest.TestCase):
         self.assertIn('proposal_id: "BOOTSTRAP-TEST-001"', config)
         self.assertIn('initialized_at: "2026-08-25"', config)
         self.assertIn('mode: "git"', config)
+        self.assertIn('pull_before_proposal: true', config)
+        self.assertNotIn('pull_before_run:', config)
+        portability = (
+            repository / ".knowledge-evolution" / "portability.yaml"
+        ).read_text(encoding="utf-8")
+        self.assertIn('pull_before_proposal: true', portability)
         self.assertFalse((repository / ".git").exists())
 
     def test_scaffold_requires_explicit_copy_authorization(self) -> None:
@@ -219,16 +225,43 @@ class GitPortabilityTests(unittest.TestCase):
 
         dirty = second / "local-draft.txt"
         dirty.write_text("not approved\n", encoding="utf-8")
-        blocked, _ = self.run_script(
+        current, _ = self.run_script(
             "sync_knowledge_repository.py",
             "pull",
             "--repo",
             str(second),
-            expected=2,
         )
-        self.assertIn("dirty", str(blocked["error"]))
+        self.assertTrue(current["synchronized"])
+        self.assertFalse(current["pulled"])
+        self.assertEqual(dirty.read_text(encoding="utf-8"), "not approved\n")
 
+        remote_only = first / "Knowledge" / "Remote.md"
+        remote_only.write_text("# Remote\n\nIncoming.\n", encoding="utf-8")
+        self.git(first, "add", "Knowledge/Remote.md")
+        self.git(first, "commit", "-m", "add remote knowledge")
+        self.git(first, "push")
+        non_overlapping, _ = self.run_script(
+            "sync_knowledge_repository.py", "pull", "--repo", str(second)
+        )
+        self.assertTrue(non_overlapping["pulled"])
+        self.assertTrue((second / "Knowledge" / "Remote.md").exists())
+        self.assertEqual(dirty.read_text(encoding="utf-8"), "not approved\n")
+
+        note.write_text("# Note\n\nRemote overlap.\n", encoding="utf-8")
+        self.git(first, "add", "Knowledge/Note.md")
+        self.git(first, "commit", "-m", "overlap remote knowledge")
+        self.git(first, "push")
         second_note = second / "Knowledge" / "Note.md"
+        second_note.write_text("# Note\n\nLocal overlap.\n", encoding="utf-8")
+        blocked, _ = self.run_script(
+            "sync_knowledge_repository.py", "pull", "--repo", str(second), expected=2
+        )
+        self.assertIn("overlap", str(blocked["error"]))
+        self.assertIn("Local overlap", second_note.read_text(encoding="utf-8"))
+
+        second_note.write_text("# Note\n\nVersion two.\n", encoding="utf-8")
+        self.run_script("sync_knowledge_repository.py", "pull", "--repo", str(second))
+
         second_note.write_text("# Note\n\nVersion three.\n", encoding="utf-8")
         published, _ = self.run_script(
             "sync_knowledge_repository.py",
@@ -266,6 +299,58 @@ class GitPortabilityTests(unittest.TestCase):
             self.git(second, "rev-parse", "HEAD"),
             self.git(None, "--git-dir", str(remote), "rev-parse", "refs/heads/main"),
         )
+
+    def test_rejected_push_preserves_local_commit_without_rebase(self) -> None:
+        remote = self.root / "remote.git"
+        first = self.root / "first"
+        second = self.root / "second"
+        self.git(None, "init", "--bare", str(remote))
+        self.git(None, "init", "-b", "main", str(first))
+        self.configure_identity(first)
+        (first / "Knowledge").mkdir()
+        (first / "Knowledge" / "Note.md").write_text("# Note\n\nInitial.\n", encoding="utf-8")
+        self.git(first, "add", "Knowledge/Note.md")
+        self.git(first, "commit", "-m", "initial")
+        self.git(first, "remote", "add", "origin", str(remote))
+        self.git(first, "push", "--set-upstream", "origin", "main")
+        self.git(None, "clone", "--branch", "main", str(remote), str(second))
+        self.configure_identity(second)
+
+        (first / "remote.txt").write_text("remote advanced\n", encoding="utf-8")
+        self.git(first, "add", "remote.txt")
+        self.git(first, "commit", "-m", "remote advance")
+        self.git(first, "push")
+
+        local_note = second / "Knowledge" / "Note.md"
+        local_note.write_text("# Note\n\nApproved local change.\n", encoding="utf-8")
+        before = self.git(second, "rev-parse", "HEAD")
+        failed, _ = self.run_script(
+            "sync_knowledge_repository.py",
+            "publish",
+            "--repo",
+            str(second),
+            "--path",
+            "Knowledge/Note.md",
+            "--message",
+            "knowledge: approved local change",
+            "--push",
+            "--allow-non-github-private-remote",
+            expected=2,
+        )
+        self.assertTrue(str(failed["error"]))
+        after = self.git(second, "rev-parse", "HEAD")
+        self.assertNotEqual(before, after)
+        parents = self.git(second, "rev-list", "--parents", "-n", "1", "HEAD").split()
+        self.assertEqual(len(parents), 2)
+        self.assertIn("Approved local change", self.git(second, "show", "HEAD:Knowledge/Note.md"))
+        self.assertNotEqual(
+            after,
+            self.git(None, "--git-dir", str(remote), "rev-parse", "refs/heads/main"),
+        )
+        blocked, _ = self.run_script(
+            "sync_knowledge_repository.py", "pull", "--repo", str(second), expected=2
+        )
+        self.assertIn("diverged", str(blocked["error"]))
 
 
 if __name__ == "__main__":

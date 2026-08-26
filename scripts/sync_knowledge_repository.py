@@ -8,6 +8,7 @@ stashes, resets, rebases, auto-merges, rewrites history, or force-pushes.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -87,6 +88,47 @@ def porcelain(repo: Path) -> list[str]:
 def staged_paths(repo: Path) -> list[str]:
     output = git(repo, "diff", "--cached", "--name-only", "-z").stdout
     return [path for path in output.split("\0") if path]
+
+
+def working_paths(repo: Path) -> list[str]:
+    """Return tracked and untracked paths that differ from HEAD."""
+    tracked = git(repo, "diff", "--name-only", "-z", "HEAD", "--").stdout
+    untracked = git(repo, "ls-files", "--others", "--exclude-standard", "-z").stdout
+    return sorted(set(path for path in (tracked + untracked).split("\0") if path))
+
+
+def incoming_paths(repo: Path, upstream: str) -> list[str]:
+    output = git(repo, "diff", "--name-only", "-z", f"HEAD..{upstream}", "--").stdout
+    return sorted(set(path for path in output.split("\0") if path))
+
+
+def paths_overlap(left: str, right: str) -> bool:
+    first = PurePosixPath(left)
+    second = PurePosixPath(right)
+    return first == second or first in second.parents or second in first.parents
+
+
+def path_signature(repo: Path, relative: str) -> str:
+    path = repo / Path(*PurePosixPath(relative).parts)
+    digest = hashlib.sha256()
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError:
+        return "missing"
+    digest.update(f"{metadata.st_mode}:{metadata.st_size}:".encode())
+    if path.is_symlink():
+        digest.update(str(path.readlink()).encode())
+    elif path.is_file():
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+    else:
+        digest.update(b"directory")
+    return digest.hexdigest()
+
+
+def path_signatures(repo: Path, paths: list[str]) -> dict[str, str]:
+    return {path: path_signature(repo, path) for path in paths}
 
 
 def remote_url(repo: Path, name: str = "origin") -> str | None:
@@ -185,17 +227,66 @@ def verify_private(repo: Path, remote: str = "origin") -> dict[str, Any]:
 
 def pull(repo: Path) -> dict[str, Any]:
     before = status(repo)
-    if not before["clean"]:
-        raise SyncError("worktree or index is dirty; refusing to pull")
     if not before["upstream"]:
         raise SyncError("current branch has no upstream; refusing to guess a pull source")
-    completed = git(repo, "pull", "--ff-only")
+
+    git(repo, "fetch")
+    fetched = status(repo)
+    ahead = fetched["ahead"]
+    behind = fetched["behind"]
+    if ahead is None or behind is None:
+        raise SyncError("could not determine local and upstream relationship after fetch")
+    if ahead and behind:
+        raise SyncError("local and upstream histories have diverged; refusing to synchronize")
+    if ahead:
+        raise SyncError("local branch is ahead of upstream; publish or reconcile it before proposing")
+
+    dirty_paths = working_paths(repo)
+    if not behind:
+        return {
+            "pulled": False,
+            "synchronized": True,
+            "strategy": "fast-forward-only",
+            "output": "Already synchronized with upstream.",
+            "dirty_paths_preserved": dirty_paths,
+            "before": before,
+            "after_fetch": fetched,
+            "after": fetched,
+        }
+
+    incoming = incoming_paths(repo, fetched["upstream"])
+    overlaps = sorted(
+        {local for local in dirty_paths for remote in incoming if paths_overlap(local, remote)}
+    )
+    if overlaps:
+        raise SyncError(
+            "local dirty paths overlap incoming upstream changes; refusing to synchronize: "
+            + ", ".join(overlaps)
+        )
+
+    signatures_before = path_signatures(repo, dirty_paths)
+    completed = git(repo, "merge", "--ff-only", fetched["upstream"])
+    signatures_after = path_signatures(repo, dirty_paths)
+    changed_signatures = sorted(
+        path for path in dirty_paths if signatures_before[path] != signatures_after[path]
+    )
+    if changed_signatures:
+        raise SyncError(
+            "local dirty paths changed during synchronization: " + ", ".join(changed_signatures)
+        )
+
     after = status(repo)
+    if after["ahead"] or after["behind"]:
+        raise SyncError("local HEAD does not match upstream after fast-forward synchronization")
     return {
         "pulled": True,
+        "synchronized": True,
         "strategy": "fast-forward-only",
         "output": redact(completed.stdout.strip()),
+        "incoming_paths": incoming,
+        "dirty_paths_preserved": dirty_paths,
         "before": before,
+        "after_fetch": fetched,
         "after": after,
     }
 

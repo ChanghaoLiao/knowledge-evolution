@@ -116,13 +116,19 @@ Do not commit `.local/device.yaml`. Commit only `.local/device.yaml.example` wit
 
 ## Safe synchronization
 
-At the beginning of a Git-backed Evolve or Audit run:
+For an already configured Git-backed knowledge repository, synchronize exactly once before reading canonical knowledge to generate a proposal. A read-only Audit that will not propose changes does not require this gate; if it later transitions into proposal work, synchronize then and re-read the affected canonical knowledge. A local-only knowledge base or first Bootstrap before a remote and upstream exist records the gate as not applicable.
 
-1. run repository status;
-2. pull only when the worktree and index are clean;
-3. use fast-forward-only pull;
-4. stop on divergence, conflicts, detached HEAD, missing upstream, or authentication failure;
-5. load shared profile, configuration, and knowledge only after the repository is current or the stale state is clearly reported.
+The pre-proposal gate:
+
+1. fetch the configured upstream and inspect ahead/behind state;
+2. stop on divergence, detached HEAD, missing upstream, authentication failure, or a local branch that is already ahead;
+3. when the upstream is already current, preserve existing dirty paths and continue without a merge;
+4. when the upstream is ahead, compare incoming paths with dirty paths and stop on overlap;
+5. otherwise fast-forward only, verify dirty-path signatures are unchanged, and require local HEAD to equal upstream before generating the proposal.
+
+Do not repeat this Git synchronization during Apply. Apply may still re-read local targets and verify registered Import/Adopt source hashes; those checks validate the approved proposal and are not remote synchronization.
+
+New shared configuration uses `sync.pull_before_proposal`. For an existing repository that still has `sync.pull_before_run: true`, interpret that legacy field as the same pre-proposal gate; do not treat it as permission to pull during Apply. Migrate the field only through a reviewed configuration change.
 
 After an approved Apply:
 
@@ -132,9 +138,10 @@ After an approved Apply:
 4. stage only those paths;
 5. commit with a proposal or change reference;
 6. push normally, never with `--force`;
-7. report the commit and whether push succeeded.
+7. if push is rejected because the remote advanced, preserve the local commit and stop without pull, rebase, merge, or automatic conflict resolution;
+8. report the commit and whether push succeeded.
 
-Use `scripts/sync_knowledge_repository.py status`, `pull`, `verify-private`, and `publish`. It must refuse unsafe pull state and unrelated pre-staged changes.
+Use `scripts/sync_knowledge_repository.py status`, `pull`, `verify-private`, and `publish`. `pull` is the pre-proposal synchronization command; `publish` never invokes it. The tool must refuse overlapping or divergent synchronization state and unrelated pre-staged changes.
 
 No bundled component is a background daemon. Synchronization happens during an explicit user or Agent task.
 

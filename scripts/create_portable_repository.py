@@ -171,7 +171,9 @@ def configured_knowledge_template(
     )
     result = result.replace("  device_config: null", '  device_config: ".local/device.yaml"', 1)
     result = result.replace("    provider: null", '    provider: "github"', 1)
-    result = result.replace("    pull_before_run: false", "    pull_before_run: true", 1)
+    result = result.replace(
+        "    pull_before_proposal: false", "    pull_before_proposal: true", 1
+    )
     return result
 
 

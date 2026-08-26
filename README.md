@@ -354,16 +354,18 @@ python3 scripts/sync_knowledge_repository.py verify-private \
 
 只有验证结果为 `PRIVATE` 后，才允许第一次知识 push。GitHub CLI 未登录、无法获得可见性、仓库是 public，都会阻断推送；系统不会退回公开仓库。
 
-### 日常同步
+### 提案前同步
 
-开始一次知识任务前检查状态：
+只有在本次任务准备生成知识变更提案时，才在读取 canonical 知识前同步一次：
 
 ```bash
 python3 scripts/sync_knowledge_repository.py status --repo "/目标/Personal Knowledge" --pretty
 python3 scripts/sync_knowledge_repository.py pull --repo "/目标/Personal Knowledge" --pretty
 ```
 
-`pull` 只在 worktree 和 index 都干净、有明确 upstream 时执行 `--ff-only`。存在未提交修改、分叉、冲突、detached HEAD 或认证失败时会停止，不会自动 stash、reset、rebase 或选一个版本覆盖另一个。
+`pull` 会先 fetch。有本地未提交内容但远程已经一致时，它不会修改这些内容；远程领先时，只有 incoming paths 与本地 dirty paths 不重叠才执行 fast-forward，并验证本地内容前后未变化。路径重叠、分叉、本地分支领先、detached HEAD、缺少 upstream 或认证失败都会阻断提案。Apply 前不再次执行 pull。
+
+新配置字段是 `sync.pull_before_proposal`。旧仓库中的 `sync.pull_before_run: true` 继续按“提案前同步”解释，不代表 Apply 前同步；迁移字段时仍应走正常的配置审核。
 
 知识提案获批并应用、验证后，提交仍然只包含用户批准的路径：
 
@@ -376,7 +378,7 @@ python3 scripts/sync_knowledge_repository.py publish \
   --pretty
 ```
 
-脚本拒绝已有的无关 staged 内容，从不 force-push。普通知识 Apply 的批准不会自动授权 commit 或 push，除非用户已经在持久策略中明确启用获批后发布。
+脚本拒绝已有的无关 staged 内容，从不 force-push。普通知识 Apply 的批准不会自动授权 commit 或 push，除非用户已经在持久策略中明确启用获批后发布。若远程在审批期间前进，普通 push 会失败并保留本地批准提交；脚本不会自动 pull、rebase 或 merge。
 
 ### 另一台电脑如何开始
 
@@ -641,7 +643,7 @@ portability:
     provider: null
     expected_visibility: "private"
   sync:
-    pull_before_run: false
+    pull_before_proposal: false
     pull_strategy: "fast-forward-only"
     publish_after_approved_apply: false
     auto_resolve_conflicts: false
@@ -691,7 +693,7 @@ python3 -m unittest discover -s tests -v
 - 便携仓库生成与原 Vault 哈希保持；
 - 复制来源必须显式授权；
 - 仓库级 Skill 安装幂等且拒绝覆盖；
-- 干净 worktree 的 `ff-only` 拉取、dirty pull 阻断和批准路径提交；
+- 提案前 `ff-only` 同步、无重叠 dirty path 保留、重叠/分叉阻断和批准路径提交；
 - 非 GitHub 测试 remote 的显式隐私确认与普通 push。
 
 所有自动化测试均使用临时仓库和临时知识库，不接触真实 Vault。Import / Adopt 还完成过一次独立前向测试：两个外部来源加一个已有目标库、9 个清单文件、5 个分类批次，成功推进到 `proposed`，来源和目标文件零写入。

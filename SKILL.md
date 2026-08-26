@@ -14,6 +14,7 @@ Treat a knowledge base as a governed system that evolves through reviewed change
 - Observe the current conversation, relevant tool activity, workspace changes, and existing knowledge.
 - Label every candidate as `observed`, `stated`, or `inferred`; never present inference as fact.
 - Generate a change proposal before editing the knowledge base. Require explicit approval by default.
+- For an already configured Git-backed knowledge repository, synchronize once before reading canonical knowledge to generate a proposal. Do not synchronize again during Apply.
 - Preserve the user's existing taxonomy, naming, frontmatter, links, and language.
 - Never invent an existing note, folder, or target path. Mark unresolved targets as `TBD` and block Apply until the knowledge root and target are verified.
 - Treat Bootstrap as a persistent state transition, not a temporary prompt. Preserve approved initialization choices and provenance across later Evolve runs.
@@ -46,6 +47,8 @@ If the knowledge environment is not initialized, read [onboarding.md](references
 If Bootstrap includes existing notes, exported data, documents, project folders, or more than one source root, read [import-adopt.md](references/import-adopt.md) completely. Register explicit roots before scanning, keep operational state outside source and target content, and use the resumable Import/Adopt pipeline. Do not substitute an untracked recursive read or a one-shot bulk rewrite.
 
 If the user asks for Git, GitHub, a private repository, multiple-computer access, portable Codex discovery, pull/push, or knowledge sync, read [git-portability.md](references/git-portability.md) completely. Keep repository creation, knowledge initialization, global Skill installation, and remote publication as separately reviewable actions. Default the remote to private and verify that visibility before the first knowledge push.
+
+When a configured Git-backed run will produce a proposal, complete the pre-proposal synchronization before using the repository as canonical evidence. A local-only knowledge base or first Bootstrap before a remote and upstream exist records synchronization as not applicable. An Apply-only run must not fetch or pull; it works from the approved local proposal state and the local verification required below.
 
 If persistent configuration reports `initialized` or `adopted`, do not run Bootstrap again. Use Evolve or Audit unless the user explicitly requests reinitialization or migration.
 
@@ -114,7 +117,7 @@ For Import/Adopt jobs, verify that registered source hashes still match the prop
 
 Update the knowledge map, source registry, affected backlinks, and change ledger when present. Record what changed, why, which evidence supported it, and which proposal approval authorized it.
 
-For a Git-backed knowledge repository, a knowledge Apply approval does not automatically authorize a commit or push. After verification, publish only approved repository paths, never force-push, and stop on dirty pull state, divergence, or conflicts. Use `scripts/sync_knowledge_repository.py` for deterministic status, fast-forward pull, private-remote verification, and scoped publication.
+Do not fetch or pull the knowledge repository during Apply. For a Git-backed repository, a knowledge Apply approval does not automatically authorize a commit or push. After verification, publish only approved repository paths and never force-push. A normal push that is rejected because the remote advanced must leave the local approved commit intact and stop without pull, rebase, merge, or automatic conflict resolution. Use `scripts/sync_knowledge_repository.py` for pre-proposal fast-forward synchronization, private-remote verification, and scoped publication.
 
 ### 9. Verify and report
 

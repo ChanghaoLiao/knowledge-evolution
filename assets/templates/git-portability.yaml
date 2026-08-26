@@ -13,7 +13,7 @@ remote:
   visibility_verified_at: null
 
 sync:
-  pull_before_run: true
+  pull_before_proposal: true
   pull_strategy: "fast-forward-only"
   publish_after_approved_apply: false
   auto_resolve_conflicts: false

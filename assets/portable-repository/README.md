@@ -26,7 +26,9 @@ python3 .agents/skills/knowledge-evolution/scripts/install_portable_skill.py \
 
 Git clone never runs installers automatically.
 
-## Safe synchronization
+## Pre-proposal synchronization
+
+Run this once before reading canonical knowledge to generate a proposal. Do not run it again during Apply.
 
 ```bash
 python3 .agents/skills/knowledge-evolution/scripts/sync_knowledge_repository.py status --repo . --pretty
@@ -44,4 +46,4 @@ python3 .agents/skills/knowledge-evolution/scripts/sync_knowledge_repository.py 
   --pretty
 ```
 
-The sync tool refuses dirty pulls, unrelated staged changes, non-fast-forward pull behavior, public GitHub remotes, and force-pushes.
+The sync tool preserves non-overlapping dirty paths, refuses overlaps, divergence, unrelated staged changes, public GitHub remotes, and force-pushes. If a normal push is rejected after Apply, it keeps the local approved commit and does not pull, rebase, or merge.

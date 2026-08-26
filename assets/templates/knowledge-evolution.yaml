@@ -20,7 +20,7 @@ portability:
     provider: null
     expected_visibility: "private"
   sync:
-    pull_before_run: false
+    pull_before_proposal: false
     pull_strategy: "fast-forward-only"
     publish_after_approved_apply: false
     auto_resolve_conflicts: false
